@@ -56,7 +56,10 @@ int main(int argc, char **argv)
         printf("%d:%d %.*s\n", lex.line, lex.col, (int)lerr.err.len, lerr.err.data);
         
     for (int i = 0; i < arrlen(lex.tokens); ++i) {
-        printf("  [%s] %.*s\n", TokenTypeNames[lex.tokens[i].type], lex.tokens[i].lit.len, lex.tokens[i].lit.data);
+        if (lex.tokens[i].type >= TOKEN_IDENT)
+            printf("  [%s] '%.*s'\n", TokenTypeNames[lex.tokens[i].type], lex.tokens[i].lit.len, lex.tokens[i].lit.data);
+        else
+            printf("  [%c]\n", lex.tokens[i].type);
     }
 
     
