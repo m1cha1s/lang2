@@ -41,7 +41,7 @@ typedef struct Lexer {
     
     usize head;
     
-    Token *tokens
+    Token *tokens;
 } Lexer;
 
 typedef struct LexerError {

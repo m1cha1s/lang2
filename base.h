@@ -25,6 +25,11 @@ typedef double f64;
 #define IsNum(x) ('0' <= x && x <= '9')
 #define IsWhitespace(x) (x == ' ' || x == '\n' || x == '\t')
 
+#define STR_(s) #s
+#define STR(s) STR_(s)
+#define CONCAT_(a,b) a ## b
+#define CONCAT(a,b) CONCAT_(a,b)
+
 // Memory
 
 #define KB(x) (x*1024)
@@ -60,7 +65,7 @@ typedef struct String {
      usize len;
 } String;
 
-#define S(x) ((String){.data=x, .len=(sizeof(x)-1)})
+#define S(x) ((String){.data=(u8*)(x), .len=(sizeof(x)-1)})
 
 String StringViewFromBytes(u8 *cstr, usize len);
 String StringFromBytes(Arena *arena, u8 *cstr, usize len);

@@ -224,4 +224,5 @@ LexerError LexerLexSrc(Lexer *lex)
     }
     
     #undef SingleCharToken
+    return err;
 }

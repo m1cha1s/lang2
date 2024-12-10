@@ -19,7 +19,7 @@ FEATURES:
 - Code notes (jai style) (ex. for deprecation)
 
 TODO:
-- 
+- Error in lexer, wrong line, col info for tokens longer than a single char.
 
 */
 
@@ -54,16 +54,20 @@ int main(int argc, char **argv)
     
     LexerError lerr = LexerLexSrc(&lex);
     if (lerr.isErr)
-        printf("%d:%d %.*s\n", lex.line, lex.col, (int)lerr.err.len, lerr.err.data);
+        printf("%d:%d %.*s\n", (int)lex.line, (int)lex.col, (int)lerr.err.len, lerr.err.data);
         
     for (int i = 0; i < arrlen(lex.tokens); ++i) {
         if (lex.tokens[i].type >= TOKEN_IDENT)
-            printf("  [%s] '%.*s'\n", TokenTypeNames[lex.tokens[i].type], lex.tokens[i].lit.len, lex.tokens[i].lit.data);
+            printf("  [%s] '%.*s'\n", TokenTypeNames[lex.tokens[i].type], (int)lex.tokens[i].lit.len, lex.tokens[i].lit.data);
         else
             printf("  [%c]\n", lex.tokens[i].type);
     }
 
-    
+    Package p = {0};
+    bool e = ParsePackage(&p, lex.tokens);
+    if (e) {
+        printf("%d:%d %.*s\n", (int)lex.tokens[p.i].line, (int)lex.tokens[p.i].col, (int)p.err.err.len, p.err.err.data);
+    }
 }
 
 #include "base.c"

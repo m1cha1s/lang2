@@ -42,6 +42,7 @@ typedef struct AScope {
     ABase base;
     
     Sym *symTable; // Hash map?
+    ABase **scope;
 } AScope;
 
 typedef struct AStmtCompDir {
@@ -72,8 +73,15 @@ typedef struct AStmtDecl {
     String ident;
     
     ABase *target;
-    ABase *value;
+    ABase *type;
 } AStmtDecl;
+
+typedef struct AExprLit {
+    ABase base;
+    
+    String str;
+    // TODO: Add numbers;
+} AExprLit;
 
 typedef struct ParserError {
     bool isErr;
@@ -82,11 +90,15 @@ typedef struct ParserError {
 
 typedef struct Package {
     String packageName;
-    ABase *module;
+    
+    usize i;
+    
+    AScope module;
+    Arena pa;
     
     ParseError err;
 } Package;
 
-Package ParsePackage(Token *tokens);
+bool ParsePackage(Package *pkg, Token *tokens);
 
 #endif
