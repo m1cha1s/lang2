@@ -12,6 +12,8 @@ typedef enum TokenType {
     TOKEN_LABEL,
     TOKEN_STRING,
     TOKEN_NUMBER,
+    
+    TOKEN_ARROW,
 } TokenType;
 
 const char *TokenTypeNames[] = {
@@ -20,6 +22,8 @@ const char *TokenTypeNames[] = {
     [TOKEN_LABEL] = "TOKEN_LABEL",
     [TOKEN_STRING] = "TOKEN_STRING",
     [TOKEN_NUMBER] = "TOKEN_NUMBER",
+    
+    [TOKEN_ARROW] = "->",
 };
 
 typedef struct Token {

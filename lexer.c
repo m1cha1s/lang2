@@ -19,7 +19,17 @@ Lexer LexerFromSrc(String src)
 LexerError LexerLexSrc(Lexer *lex)
 {
     LexerError err = {0};
-    
+        
+    #define SingleCharToken(c) \
+    case c: { \
+            t.line = lex->line; \
+            t.col = lex->col; \
+            t.type = c; \
+            arrpush(lex->tokens, t); \
+            lex->head += 1; \
+            lex->col += 1; \
+            break; \
+    }
     
     while (lex->head < lex->src.len) {
         Token t = {0};
@@ -41,7 +51,7 @@ LexerError LexerLexSrc(Lexer *lex)
                 lex->head += 1;
                 lex->col += 1;
                 
-                if (IsWhitespace(lex->src.data[lex->head])) {
+                if (!(IsAlpha(lex->src.data[lex->head]) || IsNum(lex->src.data[lex->head]) || lex->src.data[lex->head] == '_')) {
                     if (lex->src.data[lex->head] == '\n') {
                         lex->line += 1;
                         lex->col = 0;
@@ -55,6 +65,31 @@ LexerError LexerLexSrc(Lexer *lex)
             t.line = lex->line;
             t.col = lex->col;
             t.type = TOKEN_COMP_DIR;
+            
+            arrpush(lex->tokens, t);
+            
+            break;
+        }
+        case '@': {
+            usize start = lex->head;
+            while (1) {
+                lex->head += 1;
+                lex->col += 1;
+                
+                if (!(IsAlpha(lex->src.data[lex->head]) || IsNum(lex->src.data[lex->head]) || lex->src.data[lex->head] == '_')) {
+                    if (lex->src.data[lex->head] == '\n') {
+                        lex->line += 1;
+                        lex->col = 0;
+                    }
+                        
+                    break;
+                }
+            }
+            
+            t.lit = StringViewFromBytes(&lex->src.data[start+1], lex->head-start-1);
+            t.line = lex->line;
+            t.col = lex->col;
+            t.type = TOKEN_LABEL;
             
             arrpush(lex->tokens, t);
             
@@ -79,8 +114,6 @@ LexerError LexerLexSrc(Lexer *lex)
                 if (lex->src.data[lex->head] == '"') {
                     break;
                 }
-                
-                printf("aaa\n");
             }
             
             lex->head += 1;
@@ -95,20 +128,93 @@ LexerError LexerLexSrc(Lexer *lex)
             
             break;
         }
-        case ';': {
-            
-            t.line = lex->line;
-            t.col = lex->col;
-            t.type = ';';
-            
-            arrpush(lex->tokens, t);
-            
-            lex->head += 1;
-            lex->col += 1;
-            
+        SingleCharToken(';')
+        SingleCharToken(':')
+        SingleCharToken('(')
+        SingleCharToken(')')
+        SingleCharToken('{')
+        SingleCharToken('}')
+        SingleCharToken('=')
+        SingleCharToken('+')
+        case '-': {
+            if (lex->src.data[lex->head+1] == '>') {
+                t.line = lex->line;
+                t.col = lex->col;
+                t.type = TOKEN_ARROW;
+                
+                arrpush(lex->tokens, t);
+                
+                lex->head += 2;
+                lex->col += 2;
+            }
+            else {
+                t.line = lex->line;
+                t.col = lex->col;
+                t.type = '-';
+                
+                arrpush(lex->tokens, t);
+                
+                lex->head += 1;
+                lex->col += 1;
+            }
+        
             break;
         }
+        SingleCharToken('*')
+        SingleCharToken('/')
+        SingleCharToken(',')
         default: {
+            if (IsAlpha(lex->src.data[lex->head])) {
+                usize start = lex->head;
+                while (1) {
+                    lex->head += 1;
+                    lex->col += 1;
+                    
+                    if (!(IsAlpha(lex->src.data[lex->head]) || IsNum(lex->src.data[lex->head]) || lex->src.data[lex->head] == '_')) {
+                        if (lex->src.data[lex->head] == '\n') {
+                            lex->line += 1;
+                            lex->col = 0;
+                        }
+                            
+                        break;
+                    }
+                }
+                
+                t.lit = StringViewFromBytes(&lex->src.data[start], lex->head-start);
+                t.line = lex->line;
+                t.col = lex->col;
+                t.type = TOKEN_IDENT;
+                
+                arrpush(lex->tokens, t);
+                
+                break;
+            }
+            if (IsNum(lex->src.data[lex->head])) {
+                usize start = lex->head;
+                while (1) {
+                    lex->head += 1;
+                    lex->col += 1;
+                    
+                    if (!(lex->src.data[lex->head]=='.' || IsNum(lex->src.data[lex->head]))) {
+                        if (lex->src.data[lex->head] == '\n') {
+                            lex->line += 1;
+                            lex->col = 0;
+                        }
+                            
+                        break;
+                    }
+                }
+                
+                t.lit = StringViewFromBytes(&lex->src.data[start], lex->head-start);
+                t.line = lex->line;
+                t.col = lex->col;
+                t.type = TOKEN_NUMBER;
+                
+                arrpush(lex->tokens, t);
+                
+                break;
+            }
+        
             err.isErr = true;
             err.err = S("Unexpected character");
             return err;
@@ -116,4 +222,6 @@ LexerError LexerLexSrc(Lexer *lex)
         }
         }
     }
+    
+    #undef SingleCharToken
 }

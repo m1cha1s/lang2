@@ -32,6 +32,7 @@ TODO:
 
 #include "base.h"
 #include "lexer.h"
+#include "parser.h"
 
 int main(int argc, char **argv)
 {
@@ -67,6 +68,7 @@ int main(int argc, char **argv)
 
 #include "base.c"
 #include "lexer.c"
+#include "parser.c"
 
 #define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"

@@ -1,5 +1,18 @@
 #import "Basic";
 
 main :: () {
-    print("Hello world\n"); @test
+    print("Hello world\n"); @test_label
+    print(69);
+    
+    a := 12;
+    
+    a += 2;
+    a = a * 2;
+    a = add(2, 4);
+    
+    print(a);
+}
+
+add :: (a: s32, b: s32) -> s32 {
+    return a+b;
 }
