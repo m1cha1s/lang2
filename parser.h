@@ -35,7 +35,7 @@ typedef struct ALabel {
 
 typedef struct Sym {
     String ident;
-    usize type; // Index into the type table;
+    usize type; // Index into the type table; or a hash of the type.
 } Sym;
 
 typedef struct AScope {
@@ -75,8 +75,18 @@ typedef struct AStmtDecl {
     ABase *value;
 } AStmtDecl;
 
-typedef struct Parser {
+typedef struct ParserError {
+    bool isErr;
+    String err;
+} ParseError;
+
+typedef struct Package {
+    String packageName;
+    ABase *module;
     
-} Parser;
+    ParseError err;
+} Package;
+
+Package ParsePackage(Token *tokens);
 
 #endif
