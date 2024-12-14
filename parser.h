@@ -3,18 +3,18 @@
 
 typedef enum AType {
     AST_LABEL,
-    
+
     AST_SCOPE,
-    
+
     AST_STMT_COMP_DIR,
 
     AST_STMT_CONST_ASSIGN,
     AST_STMT_ASSIGN,
-    
+
     AST_STMT_DECL,
-    
+
     AST_STMT_EXPR,
-    
+
     AST_EXPR_FUNC,
     AST_EXPR_FUNC_CALL,
     AST_EXPR_FUNC_CALL_ARG,
@@ -29,7 +29,7 @@ typedef struct ABase {
 
 typedef struct ALabel {
     ABase base;
-    
+
     String label;
 } ALabel;
 
@@ -40,45 +40,45 @@ typedef struct Sym {
 
 typedef struct AScope {
     ABase base;
-    
+
     Sym *symTable; // Hash map?
     ABase **scope;
 } AScope;
 
 typedef struct AStmtCompDir {
     ABase base;
-    
+
     String directive;
-    
+
     ABase *arg;
 } AStmtCompDir;
 
 typedef struct AStmtConstAssign {
     ABase base;
-    
+
     ABase *target;
     ABase *value;
 } AStmtConstAssign;
 
 typedef struct AStmtAssign {
     ABase base;
-    
+
     ABase *target;
     ABase *value;
 } AStmtAssign;
 
 typedef struct AStmtDecl {
     ABase base;
-    
+
     String ident;
-    
+
     ABase *target;
     ABase *type;
 } AStmtDecl;
 
 typedef struct AExprLit {
     ABase base;
-    
+
     String str;
     // TODO: Add numbers;
 } AExprLit;
@@ -88,17 +88,22 @@ typedef struct ParserError {
     String err;
 } ParseError;
 
-typedef struct Package {
+typedef struct Parser {
     String packageName;
-    
-    usize i;
-    
-    AScope module;
-    Arena pa;
-    
-    ParseError err;
-} Package;
 
-bool ParsePackage(Package *pkg, Token *tokens);
+    usize i;
+
+    AScope glob;
+    Arena pa;
+
+    ParseError err;
+
+    Token *tokens;
+} Parser;
+
+Parser ParserFromLexer(Lexer *lex);
+bool ParserParseTokens(Parser *p);
+
+void ParserFree(Parser *p);
 
 #endif
