@@ -6,6 +6,11 @@ typedef enum ANodeKind {
 
     NODE_COMP_DIR,
 
+    NODE_DECL,
+    NODE_ASSIGN,
+
+    NODE_FUNC,
+
     NODE_LIT,
 } ANodeKind;
 
@@ -62,7 +67,7 @@ typedef struct AFunc {
     AExpr base;
 
     ANode **args;
-    ANode **rets;
+    string *rets;
 
     ANode *body; // This needs to be a scope...
 } AFunc;
