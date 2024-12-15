@@ -1,109 +1,134 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 
-typedef enum AType {
-    AST_LABEL,
+typedef enum ANodeKind {
+    NODE_SCOPE,
 
-    AST_SCOPE,
+    NODE_COMP_DIR,
 
-    AST_STMT_COMP_DIR,
+    NODE_LIT,
+} ANodeKind;
 
-    AST_STMT_CONST_ASSIGN,
-    AST_STMT_ASSIGN,
-
-    AST_STMT_DECL,
-
-    AST_STMT_EXPR,
-
-    AST_EXPR_FUNC,
-    AST_EXPR_FUNC_CALL,
-    AST_EXPR_FUNC_CALL_ARG,
-    AST_EXPR_LIT,
-    AST_EXPR_BINOP,
-    AST_EXPR_UNOP,
-} AType;
-
-typedef struct ABase {
-    AType type;
-} ABase;
-
-typedef struct ALabel {
-    ABase base;
-
-    String label;
-} ALabel;
-
-typedef struct Sym {
-    String ident;
-    usize type; // Index into the type table; or a hash of the type.
-} Sym;
+typedef struct ANode {
+    ANodeKind kind;
+} ANode;
 
 typedef struct AScope {
-    ABase base;
+    ANode base;
 
-    Sym *symTable; // Hash map?
-    ABase **scope;
+    ANode **stmts;
 } AScope;
 
-typedef struct AStmtCompDir {
-    ABase base;
+typedef struct AStmt {
+    ANode base;
+    string *labels;
+} AStmt;
 
-    String directive;
+typedef struct AExpr {
+    ANode base;
+    string *labels;
+} AExpr;
 
-    ABase *arg;
-} AStmtCompDir;
+typedef struct AExprStmt {
+    AStmt base;
 
-typedef struct AStmtConstAssign {
-    ABase base;
+    ANode *expr;
+} AExprStmt;
 
-    ABase *target;
-    ABase *value;
-} AStmtConstAssign;
+typedef struct ACompDir {
+    AStmt base;
 
-typedef struct AStmtAssign {
-    ABase base;
+    string directive;
+    ANode **args;
+} ACompDir;
 
-    ABase *target;
-    ABase *value;
-} AStmtAssign;
+typedef struct ADecl {
+    AExpr base;
 
-typedef struct AStmtDecl {
-    ABase base;
+    string sym;
+    string type_name;
+} ADecl;
 
-    String ident;
+typedef struct AAssign {
+    AStmt base;
 
-    ABase *target;
-    ABase *type;
-} AStmtDecl;
+    bool is_const;
 
-typedef struct AExprLit {
-    ABase base;
+    ANode *lhs;
+    ANode *rhs;
+} AAssign;
 
-    String str;
-    // TODO: Add numbers;
-} AExprLit;
+typedef struct AFunc {
+    AExpr base;
 
-typedef struct ParserError {
-    bool isErr;
-    String err;
-} ParseError;
+    ANode **args;
+    ANode **rets;
+
+    ANode *body; // This needs to be a scope...
+} AFunc;
+
+typedef struct AFuncCall {
+    AExpr base;
+
+    ANode **args;
+} AFuncCall;
+
+typedef enum ALitKind {
+    LIT_INT,
+    LIT_UINT,
+    LIT_FLOAT,
+    LIT_STRING,
+} ALitKind;
+
+typedef struct ALit {
+    AExpr base;
+
+    ALitKind kind;
+
+    union {
+        ssize INT;
+        usize UINT;
+        double FLOAT;
+        string STRING;
+    } as;
+} ALit;
+
+typedef enum AOpKind {
+    // Binary
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    OP_MOD,
+
+    // Unary
+    OP_INV,
+} AOpKind;
+
+typedef struct AOp {
+    AExpr base;
+
+    AOpKind kind;
+
+    ANode *lhs;
+    ANode *rhs;
+} AOp;
 
 typedef struct Parser {
-    String packageName;
-
-    usize i;
-
-    AScope glob;
-    Arena pa;
-
-    ParseError err;
-
     Token *tokens;
+    usize curr_token;
+
+    Arena node_arena;
+
+    bool is_err;
+    string err;
 } Parser;
 
-Parser ParserFromLexer(Lexer *lex);
-bool ParserParseTokens(Parser *p);
+Parser parser_from_lexer(Lexer *lex);
+ANode *parser_parse_tokens(Parser *p);
 
-void ParserFree(Parser *p);
+void parser_free(Parser *p);
+
+void print_ast(ANode *a);
 
 #endif

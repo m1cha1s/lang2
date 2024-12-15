@@ -1,19 +1,19 @@
 #include "base.h"
 
-static void ArenaBlockDeinit(ArenaBlock *b) 
+static void arena_block_deinit(ArenaBlock *b)
 {
     if (!b) return;
     free(b->block);
-    ArenaBlockDeinit(b->next);
+    arena_block_deinit(b->next);
     free(b);
 }
 
-void ArenaFree(Arena *arena)
+void arena_free(Arena *arena)
 {
-    ArenaBlockDeinit(arena->first);
+    arena_block_deinit(arena->first);
 }
 
-void *ArenaAlloc(Arena *arena, u64 size)
+void *arena_alloc(Arena *arena, u64 size)
 {
     if ((!arena->first) || (!arena->current))
     {
@@ -30,7 +30,7 @@ void *ArenaAlloc(Arena *arena, u64 size)
         if (!arena->current->next)
         {
             arena->current->next = malloc(sizeof(ArenaBlock));
-            
+
             u64 s = (size > BASE_BLOCK_SIZE) ? size : BASE_BLOCK_SIZE;
             arena->current->next->block = malloc(s);
             arena->current->next->size = s;
@@ -39,14 +39,14 @@ void *ArenaAlloc(Arena *arena, u64 size)
         }
         arena->current = arena->current->next;
     }
-    
+
     void *ptr = arena->current->block+arena->current->end;
     arena->current->end += size;
-    
+
     return ptr;
 }
 
-void ArenaReset(Arena *arena)
+void arena_reset(Arena *arena)
 {
     ArenaBlock *b = arena->first;
     while(b)
@@ -57,23 +57,23 @@ void ArenaReset(Arena *arena)
     arena->current = arena->first;
 }
 
-String StringViewFromBytes(u8 *cstr, usize len)
+string string_view_from_bytes(u8 *cstr, usize len)
 {
-    String s = {0};
-    
+    string s = {0};
+
     s.data = cstr;
     s.len = len;
-    
+
     return s;
 }
 
-String StringFromBytes(Arena *arena, u8 *cstr, usize len)
+string string_from_bytes(Arena *arena, u8 *cstr, usize len)
 {
-    String s = {0};
-    
-    s.data = ArenaAlloc(arena, len);
+    string s = {0};
+
+    s.data = arena_alloc(arena, len);
     memmove(s.data, cstr, len);
     s.len = len;
-    
+
     return s;
 }

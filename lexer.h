@@ -27,7 +27,7 @@ const char *TokenTypeNames[] = {
 };
 
 typedef struct Token {
-    String lit;
+    string lit;
 
     usize line, col; // This may be not necesary...
 
@@ -35,7 +35,7 @@ typedef struct Token {
 } Token;
 
 typedef struct Lexer {
-    String src;
+    string src;
 
     usize line, col;
 
@@ -46,12 +46,12 @@ typedef struct Lexer {
 
 typedef struct LexerError {
     bool isErr;
-    String err;
+    string err;
 } LexerError;
 
-Lexer LexerFromSrc(String src);
-LexerError LexerLexSrc(Lexer *lex);
+Lexer lexer_from_src(string src);
+LexerError lexer_lex_src(Lexer *lex);
 
-void LexerFree(Lexer *lex);
+void lexer_free(Lexer *lex);
 
 #endif

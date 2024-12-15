@@ -1,7 +1,7 @@
 #include "lexer.h"
 #include "stb_ds.h"
 
-Lexer LexerFromSrc(String src)
+Lexer lexer_from_src(string src)
 {
     Lexer lex = {0};
 
@@ -16,7 +16,7 @@ Lexer LexerFromSrc(String src)
     return lex;
 }
 
-LexerError LexerLexSrc(Lexer *lex)
+LexerError lexer_lex_src(Lexer *lex)
 {
     LexerError err = {0};
 
@@ -61,7 +61,7 @@ LexerError LexerLexSrc(Lexer *lex)
                 }
             }
 
-            t.lit = StringViewFromBytes(&lex->src.data[start+1], lex->head-start-1);
+            t.lit = string_view_from_bytes(&lex->src.data[start+1], lex->head-start-1);
             t.line = lex->line;
             t.col = lex->col;
             t.type = TOKEN_COMP_DIR;
@@ -86,7 +86,7 @@ LexerError LexerLexSrc(Lexer *lex)
                 }
             }
 
-            t.lit = StringViewFromBytes(&lex->src.data[start+1], lex->head-start-1);
+            t.lit = string_view_from_bytes(&lex->src.data[start+1], lex->head-start-1);
             t.line = lex->line;
             t.col = lex->col;
             t.type = TOKEN_LABEL;
@@ -119,7 +119,7 @@ LexerError LexerLexSrc(Lexer *lex)
             lex->head += 1;
             lex->col += 1;
 
-            t.lit = StringViewFromBytes(&lex->src.data[start+1], lex->head-2-start);
+            t.lit = string_view_from_bytes(&lex->src.data[start+1], lex->head-2-start);
             t.line = lex->line;
             t.col = lex->col;
             t.type = TOKEN_STRING;
@@ -180,7 +180,7 @@ LexerError LexerLexSrc(Lexer *lex)
                     }
                 }
 
-                t.lit = StringViewFromBytes(&lex->src.data[start], lex->head-start);
+                t.lit = string_view_from_bytes(&lex->src.data[start], lex->head-start);
                 t.line = lex->line;
                 t.col = lex->col;
                 t.type = TOKEN_IDENT;
@@ -205,7 +205,7 @@ LexerError LexerLexSrc(Lexer *lex)
                     }
                 }
 
-                t.lit = StringViewFromBytes(&lex->src.data[start], lex->head-start);
+                t.lit = string_view_from_bytes(&lex->src.data[start], lex->head-start);
                 t.line = lex->line;
                 t.col = lex->col;
                 t.type = TOKEN_NUMBER;
@@ -227,7 +227,7 @@ LexerError LexerLexSrc(Lexer *lex)
     return err;
 }
 
-void LexerFree(Lexer *lex)
+void lexer_free(Lexer *lex)
 {
     arrfree(lex->tokens);
 }

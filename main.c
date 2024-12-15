@@ -43,16 +43,16 @@ int main(int argc, char **argv)
 
     Arena a = {0};
 
-    String src = {0};
-    src.data = ArenaAlloc(&a, srcFileSize);
+    string src = {0};
+    src.data = arena_alloc(&a, srcFileSize);
     fread(src.data, 1, srcFileSize, srcFile);
     src.len = srcFileSize;
 
     printf("--- src file ---\n%.*s\n----\n", (int)src.len, src.data);
 
-    Lexer lex = LexerFromSrc(src);
+    Lexer lex = lexer_from_src(src);
 
-    LexerError lerr = LexerLexSrc(&lex);
+    LexerError lerr = lexer_lex_src(&lex);
     if (lerr.isErr)
         printf("%d:%d %.*s\n", (int)lex.line, (int)lex.col, (int)lerr.err.len, lerr.err.data);
 
@@ -63,14 +63,16 @@ int main(int argc, char **argv)
             printf("  [%c]\n", lex.tokens[i].type);
     }
 
-    Parser p = ParserFromLexer(&lex);
-    bool e = ParserParseTokens(&p);
-    if (e) {
-        printf("%d:%d %.*s\n", (int)lex.tokens[p.i].line, (int)lex.tokens[p.i].col, (int)p.err.err.len, p.err.err.data);
+    Parser p = parser_from_lexer(&lex);
+    ANode *ast = parser_parse_tokens(&p);
+    if (p.is_err) {
+        printf("%d:%d %.*s\n", (int)lex.tokens[p.curr_token].line, (int)lex.tokens[p.curr_token].col, (int)p.err.len, p.err.data);
     }
 
-    ParserFree(&p);
-    LexerFree(&lex);
+    print_ast(ast);
+
+    parser_free(&p);
+    lexer_free(&lex);
 }
 
 #include "base.c"

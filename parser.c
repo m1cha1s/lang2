@@ -2,134 +2,154 @@
 #include "stb_ds.h"
 #include "parser.h"
 
-#define Consume(t) \
-if (!(p->tokens[p->i].type == (t))) {\
-    p->err.isErr = true; \
-    p->err.err = S("Expected " STR(t)); \
-    return (ABase*)a; \
-} \
-p->i += 1;
-
-ABase *Parse(Parser *p);
-AScope *ParseScope(Parser *p);
-
-ABase *ParseString(Parser *p) {
-    AExprLit *a = ArenaAlloc(&p->pa, sizeof(AExprLit));
-    a->base.type = AST_EXPR_LIT;
-    a->str = p->tokens[p->i].lit;
-    p->i += 1;
-    return (ABase*)a;
-}
-
-ABase *ParseCompDir(Parser *p) {
-    AStmtCompDir *a = ArenaAlloc(&p->pa, sizeof(AStmtCompDir));
-    a->base.type = AST_STMT_COMP_DIR;
-    a->directive = p->tokens[p->i].lit;
-    p->i++;
-    a->arg = Parse(p);
-    if (p->err.isErr) return (ABase*)a;
-    Consume(';');
-    return (ABase*)a;
-}
-
-ABase *ParseIdent(Parser *p) {
-   if (p->i+1 >= arrlen(p->tokens)) {
-        p->err.isErr = true;
-        p->err.err = S("Unexpected identifier");
-        return NULL;
-    }
-
-    switch ((int)p->tokens[p->i+1].type) {
-    case ':': {
-        if (p->i+2 >= arrlen(p->tokens)) {
-            p->err.isErr = true;
-            p->err.err = S("Expected more tokens");
-            return NULL;
-        }
-
-        AStmtDecl *decl = ArenaAlloc(&p->pa, sizeof(AStmtDecl));
-        decl->base.type = AST_STMT_DECL;
-        decl->ident = p->tokens[p->i].lit;
-        p->i += 2; // Consume both the literal, and the ':'
-
-        switch ((int)p->tokens[p->i].type) {
-        case TOKEN_IDENT: { // TODO: Type...
-            break;
-        }
-        case ':': {
-            AStmtConstAssign *a = ArenaAlloc(&p->pa, sizeof(AStmtConstAssign));
-            a->base.type = AST_STMT_CONST_ASSIGN;
-            a->target = (ABase*)decl;
-            p->i += 1; // Consume the second ':'
-            a->value = Parse(p);
-            if ( a->value->type != AST_EXPR_FUNC ) {
-                Consume(';');
-            }
-            return (ABase*)a;
-            break;
-        }
-        }
-
-        break;
-    }
-    }
-    return NULL;
-}
-
-ABase *Parse(Parser *p)
+static void error(Parser *p, string msg)
 {
-    if (p->i >= arrlen(p->tokens)) {
-        p->err.isErr = true;
-        p->err.err = S("Expected more tokens");
-        return NULL;
+    p->is_err = true;
+    p->err = msg;
+}
+
+static Token peek(Parser *p)
+{
+    return p->tokens[p->curr_token];
+}
+
+static Token get(Parser *p)
+{
+    Token t = peek(p);
+    p->curr_token += 1;
+    return t;
+}
+
+static bool consume(Parser *p, TokenType typ)
+{
+    Token t = get(p);
+    bool valid = t.type == typ;
+    if (!valid) {
+        p->is_err = true;
+        p->err = S("Expected token not found.");
+    }
+    return valid;
+}
+
+ANode *parse_expr(Parser *p)
+{
+    AExpr *expr = NULL;
+    switch (peek(p).type) {
+    case TOKEN_STRING: {
+        ALit *a = arena_alloc(&p->node_arena, sizeof(ALit));
+        a->base.base.kind = NODE_LIT;
+
+        a->kind = LIT_STRING;
+        a->as.STRING = get(p).lit;
+
+        expr = (AExpr*)a;
+    } break;
+    default: error(p, S("Unexpected token")); return (ANode*)expr;
     }
 
-    switch (p->tokens[p->i].type) {
-        case TOKEN_COMP_DIR: {
-            return ParseCompDir(p);
-            break;
-        }
-        case TOKEN_STRING: {
-            return ParseString(p);
-            break;
-        }
-        case TOKEN_IDENT: {
-            return ParseIdent(p);
-            break;
-        }
-        default: {
-            p->err.isErr = true;
-            p->err.err = S("Unexpected token");
-            return NULL;
-            break;
-        }
+    while (peek(p).type == TOKEN_LABEL) {
+        arrpush(expr->labels, get(p).lit);
     }
 
-    return NULL;
+    return (ANode*)expr;
 }
 
-Parser ParserFromLexer(Lexer *lex)
+ANode *parse_comp_dir(Parser *p)
 {
-    return (Parser){
-        .tokens = lex->tokens,
-    };
+    ACompDir *a = arena_alloc(&p->node_arena, sizeof(ACompDir));
+    memset(a, 0, sizeof(ACompDir));
+    a->base.base.kind = NODE_COMP_DIR;
+
+    Token t = get(p);
+
+    a->directive = t.lit;
+
+    while (peek(p).type != ';') {
+        arrpush(a->args, parse_expr(p));
+    }
+
+    consume(p, ';');
+
+    return (ANode*)a;
 }
 
-bool ParserParseTokens(Parser *p)
+ANode *parse_stmt(Parser *p)
 {
-    p->glob.base.type = AST_SCOPE;
-    for (; p->i < arrlen(p->tokens); ++p->i) {
-        ABase *a = Parse(p);
-        if (p->err.isErr) {
-            return true;
+    AStmt *a = NULL;
+    switch (peek(p).type) {
+    case TOKEN_COMP_DIR: {
+        a = (AStmt*)parse_comp_dir(p);
+        if (!a) return (ANode*)a; // On error we fail immediately...
+    } break;
+    default: error(p, S("Unexpected token")); (ANode*)a;
+    }
+    while (peek(p).type == TOKEN_LABEL) {
+        arrpush(a->labels, get(p).lit);
+    }
+    return (ANode*)a;
+}
+
+ANode *parse_scope(Parser *p)
+{
+    AScope *scope = arena_alloc(&p->node_arena, sizeof(AScope));
+    memset(scope, 0, sizeof(AScope));
+    scope->base.kind = NODE_SCOPE;
+
+    ANode *a = NULL;
+    while (peek(p).type != '}' || p->curr_token == arrlen(p->tokens)) {
+        a = parse_stmt(p);
+        arrpush(scope->stmts, a);
+        if (p->is_err) break;
+    }
+
+    return scope;
+}
+
+ANode *parser_parse_tokens(Parser *p)
+{
+    return parse_scope(p);
+}
+
+Parser parser_from_lexer(Lexer *lex)
+{
+    return (Parser){ .tokens=lex->tokens };
+}
+
+void parser_free(Parser *p)
+{
+
+}
+
+void print_ast(ANode *a)
+{
+    if (!a) return;
+    switch (a->kind) {
+    case NODE_SCOPE: {
+        AScope *scope = (AScope*)a;
+        printf("{\n");
+        for (int i = 0; i < arrlen(scope->stmts); ++i) {
+            print_ast(scope->stmts[i]);
         }
-        arrpush(p->glob.scope, a);
+        printf("}\n");
+    } break;
+    case NODE_COMP_DIR: {
+        ACompDir *cd = (ACompDir*)a;
+        printf("#%.*s\n", cd->directive.len, cd->directive.data);
+        for (int i = 0; i < arrlen(cd->args); ++i) {
+            print_ast(cd->args[i]);
+        }
+        printf(";\n");
+    } break;
+    case NODE_LIT: {
+        ALit *lit = (ALit*)a;
+        switch (lit->kind) {
+        case LIT_STRING: {
+            printf("LIT: %.*s\n", lit->as.STRING.len, lit->as.STRING.data);
+        } break;
+        }
+    } break;
     }
 }
 
-void ParserFree(Parser *p)
-{
-    // Cleanup...
-}
 
 #undef Consume

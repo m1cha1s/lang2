@@ -17,6 +17,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 typedef size_t usize;
+typedef ptrdiff_t ssize;
 
 typedef float f32;
 typedef double f64;
@@ -53,21 +54,21 @@ typedef struct Arena {
 } Arena;
 
 // void ArenaInit(Arena *arena);
-void ArenaFree(Arena *arena);
+void arena_free(Arena *arena);
 
-void *ArenaAlloc(Arena *arena, u64 size);
-void ArenaReset(Arena *arena);
+void *arena_alloc(Arena *arena, u64 size);
+void arena_reset(Arena *arena);
 
 // ----
 
-typedef struct String {
+typedef struct string {
      u8 *data;
      usize len;
-} String;
+} string;
 
-#define S(x) ((String){.data=(u8*)(x), .len=(sizeof(x)-1)})
+#define S(x) ((string){.data=(u8*)(x), .len=(sizeof(x)-1)})
 
-String StringViewFromBytes(u8 *cstr, usize len);
-String StringFromBytes(Arena *arena, u8 *cstr, usize len);
+string string_view_from_bytes(u8 *cstr, usize len);
+string string_from_bytes(Arena *arena, u8 *cstr, usize len);
 
 #endif
