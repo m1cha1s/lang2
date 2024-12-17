@@ -161,7 +161,41 @@ LexerError lexer_lex_src(Lexer *lex)
             break;
         }
         SingleCharToken('*')
-        SingleCharToken('/')
+        case '/': {
+            if (lex->src.data[lex->head+1] == '/') {
+                while (1) {
+                    lex->head += 1;
+                    lex->col += 1;
+                    if (lex->head >= lex->src.len || lex->src.data[lex->head] == '\n')
+                        break;
+                }
+            } else if (lex->src.data[lex->head+1] == '*') {
+                while (1) {
+                    lex->head += 1;
+                    lex->col += 1;
+                    if (lex->src.data[lex->head] == '\n') {
+                        lex->col = 0;
+                        lex->line += 1;
+                    }
+                    if (lex->head >= lex->src.len || lex->src.data[lex->head] == '*' && lex->src.data[lex->head+1] == '/') {
+                        lex->head += 2;
+                        lex->col += 2;
+                        break;
+                    }
+                }
+            } else {
+                t.line = lex->line;
+                t.col = lex->col;
+                t.type = '/';
+
+                arrpush(lex->tokens, t);
+
+                lex->head += 1;
+                lex->col += 1;
+            }
+            break;
+        }
+        //SingleCharToken('/')
         SingleCharToken(',')
         default: {
             if (IsAlpha(lex->src.data[lex->head])) {
