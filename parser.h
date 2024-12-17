@@ -4,12 +4,15 @@
 typedef enum ANodeKind {
     NODE_SCOPE,
 
+    NODE_EXPR_STMT,
+
     NODE_COMP_DIR,
 
     NODE_DECL,
     NODE_ASSIGN,
 
     NODE_FUNC,
+    NODE_FUNC_CALL,
 
     NODE_LIT,
 } ANodeKind;
@@ -75,6 +78,7 @@ typedef struct AFunc {
 typedef struct AFuncCall {
     AExpr base;
 
+    string name;
     ANode **args;
 } AFuncCall;
 
@@ -127,6 +131,7 @@ typedef struct Parser {
 
     bool is_err;
     string err;
+    usize err_token;
 } Parser;
 
 Parser parser_from_lexer(Lexer *lex);

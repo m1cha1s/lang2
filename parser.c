@@ -6,26 +6,44 @@ static void error(Parser *p, string msg)
 {
     p->is_err = true;
     p->err = msg;
+    p->err_token = p->curr_token;
 }
+
+Token tok_stub = {0};
 
 static Token peek(Parser *p)
 {
+    if (p->curr_token >= arrlen(p->tokens)) {
+        error(p, S("EOF"));
+        return tok_stub;
+    }
     return p->tokens[p->curr_token];
 }
 
 static Token peek2(Parser *p)
 {
+    if (p->curr_token+1 >= arrlen(p->tokens)) {
+        error(p, S("EOF"));
+        return tok_stub;
+    }
     return p->tokens[p->curr_token+1];
 }
 
 static Token peek3(Parser *p)
 {
+    if (p->curr_token+2 >= arrlen(p->tokens)) {
+        error(p, S("EOF"));
+        return tok_stub;
+    }
     return p->tokens[p->curr_token+2];
 }
 
-
 static Token get(Parser *p)
 {
+    if (p->curr_token >= arrlen(p->tokens)) {
+        error(p, S("EOF"));
+        return tok_stub;
+    }
     Token t = peek(p);
     p->curr_token += 1;
     return t;
@@ -36,14 +54,18 @@ static bool consume(Parser *p, TokenType typ)
     Token t = get(p);
     bool valid = t.type == typ;
     if (!valid) {
-        p->is_err = true;
-        p->err = S("Expected token not found.");
+        string tok_str = string_view_from_bytes(
+            typ <= 255 ? (u8*)&typ : TokenTypeNames[typ], 
+            typ <= 255 ? 1 : strlen(TokenTypeNames[typ])
+        );
+        error(p, string_concat(&p->node_arena, S("Expected "), tok_str));
     }
     return valid;
 }
 
 ANode *parse_decl(Parser *p);
 ANode *parse_scope(Parser *p);
+ANode *parse_expr(Parser *p);
 
 ANode *parse_func(Parser *p)
 {
@@ -89,15 +111,39 @@ ANode *parse_func(Parser *p)
         if (p->is_err) return (ANode*)a;
 
         a->body = parse_scope(p);
+        
+        TokenType t = peek(p).type;
+        if (t <= 255) printf("\t'%c'\n", (char)t);
+        else printf("\t'%s'\n", TokenTypeNames[t]);
+        
+        consume(p, '}');
     }
 
-    printf("bbb\n");
 
-    consume(p, '}');
-
-    if (p->is_err) printf("ccc\n");
+    if (p->is_err)
 
     return (ANode*)a;
+}
+
+ANode *parse_func_call(Parser *p)
+{
+    AFuncCall *fn = arena_alloc(&p->node_arena, sizeof(AFuncCall));
+    memset(fn, 0, sizeof(AFuncCall));
+    fn->base.base.kind = NODE_FUNC_CALL;
+    
+    fn->name = get(p).lit;
+    
+    consume(p, '(');
+    
+    while (1) {
+        arrpush(fn->args, parse_expr(p));
+        if (peek(p).type == ')') break;
+        consume(p, ',');
+    }
+    
+    consume(p, ')');
+    
+    return (ANode*)fn;
 }
 
 ANode *parse_expr(Parser *p)
@@ -112,6 +158,12 @@ ANode *parse_expr(Parser *p)
         a->as.STRING = get(p).lit;
 
         expr = (AExpr*)a;
+    } break;
+    case TOKEN_IDENT: {
+        if (peek2(p).type == '(') {
+            expr = (AExpr*)parse_func_call(p);
+            break;
+        }
     } break;
     case '(': {
         int level = 0;
@@ -187,8 +239,25 @@ ANode *parse_assign(Parser *p, ANode *lhs)
 
     a->lhs = lhs;
     a->rhs = parse_expr(p);
+    
+    // TokenType t = peek(p).type;
+    // if (t <= 255) printf("\t\t'%c'\n", (char)t);
+    // else printf("\t\t'%s'\n", TokenTypeNames[t]);
+    
+    if (a->rhs->kind != NODE_FUNC) consume(p, ';');
 
     return (ANode*)a;
+}
+
+ANode *parse_expr_stmt(Parser *p)
+{
+    AExprStmt *es = arena_alloc(&p->node_arena, sizeof(AExprStmt));
+    memset(es, 0, sizeof(es));
+    es->base.base.kind = NODE_EXPR_STMT;
+    
+    es->expr = parse_expr(p);
+    
+    return es;
 }
 
 ANode *parse_stmt(Parser *p)
@@ -202,6 +271,11 @@ ANode *parse_stmt(Parser *p)
         if (peek2(p).type == ':' || peek2(p).type == '=') {
             ANode *lhs = parse_decl(p);
             a = (AStmt*)parse_assign(p, lhs);
+            break;
+        }
+        if (peek2(p).type == '(') {
+            a = (AStmt*)parse_expr_stmt(p);
+            break;
         }
     } break;
     default: error(p, S("Unexpected token")); return (ANode*)a;
@@ -219,7 +293,9 @@ ANode *parse_scope(Parser *p)
     scope->base.kind = NODE_SCOPE;
 
     ANode *a = NULL;
-    while (peek(p).type != '}' || p->curr_token == arrlen(p->tokens)) {
+    while (!p->is_err) {
+        if (p->curr_token >= arrlen(p->tokens)) break;
+        if (p->curr_token < arrlen(p->tokens) && peek(p).type == '}') { printf("aaa\n"); break; }
         a = parse_stmt(p);
         arrpush(scope->stmts, a);
         if (p->is_err) break;
@@ -255,6 +331,12 @@ void print_ast(ANode *a)
         }
         printf("}\n");
     } break;
+    case NODE_EXPR_STMT: {
+        AExprStmt *ex = (AExprStmt*)a;
+        printf("ExprStmt:\n");
+        print_ast(ex->expr);
+        printf(";");
+    } break;
     case NODE_COMP_DIR: {
         ACompDir *cd = (ACompDir*)a;
         printf("#%.*s\n", cd->directive.len, cd->directive.data);
@@ -280,6 +362,15 @@ void print_ast(ANode *a)
         printf(") ->\n");
         if (fn->rets) for (int i = 0; i < arrlen(fn->rets); ++i) printf("%.*s\n", fn->rets[i].len, fn->rets[i].data);
         print_ast(fn->body);
+    } break;
+    case NODE_FUNC_CALL: {
+        AFuncCall *fnc = (AFuncCall*)a;
+        printf("CALL %.*s\n(\n", fnc->name.len, fnc->name.data);
+        if (fnc->args) for (int i = 0; i < arrlen(fnc->args); ++i) {
+            print_ast(fnc->args[i]);
+            printf(",\n");
+        }
+        printf(")");
     } break;
     case NODE_LIT: {
         ALit *lit = (ALit*)a;

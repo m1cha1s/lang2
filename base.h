@@ -71,4 +71,6 @@ typedef struct string {
 string string_view_from_bytes(u8 *cstr, usize len);
 string string_from_bytes(Arena *arena, u8 *cstr, usize len);
 
+string string_concat(Arena *arena, string a, string b);
+
 #endif

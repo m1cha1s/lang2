@@ -1,5 +1,5 @@
 #import "Basic";
 
-main :: (a: i32, b: s32) -> s32, s64{
+main :: (a: i32, b: s32) -> s32, s64 {
     a := "Hello";
 }

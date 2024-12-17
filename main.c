@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     Parser p = parser_from_lexer(&lex);
     ANode *ast = parser_parse_tokens(&p);
     if (p.is_err) {
-        printf("%d:%d %.*s\n", (int)lex.tokens[p.curr_token].line, (int)lex.tokens[p.curr_token].col, (int)p.err.len, p.err.data);
+        printf("[%d/%d] %d:%d %.*s\n", (int)p.err_token, arrlen(lex.tokens), (int)lex.tokens[p.err_token].line, (int)lex.tokens[p.err_token].col, (int)p.err.len, p.err.data);
     }
 
     print_ast(ast);

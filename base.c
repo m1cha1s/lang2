@@ -77,3 +77,14 @@ string string_from_bytes(Arena *arena, u8 *cstr, usize len)
 
     return s;
 }
+
+string string_concat(Arena *arena, string a, string b)
+{
+    string c = {0};
+    c.data = arena_alloc(arena, a.len+b.len);
+    c.len = a.len+b.len;
+    memmove(c.data, a.data, a.len);
+    memmove(c.data+a.len, b.data, b.len);
+    
+    return c;
+}
