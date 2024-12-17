@@ -13,6 +13,10 @@ typedef enum ANodeKind {
 
     NODE_FUNC,
     NODE_FUNC_CALL,
+    
+    NODE_VAR,
+    
+    NODE_RETURN,
 
     NODE_LIT,
 } ANodeKind;
@@ -81,6 +85,18 @@ typedef struct AFuncCall {
     string name;
     ANode **args;
 } AFuncCall;
+
+typedef struct AVar {
+    AExpr base;
+    
+    string name;
+} AVar;
+
+typedef struct AReturn {
+    AStmt base;
+    
+    ANode **rets;
+} AReturn;
 
 typedef enum ALitKind {
     LIT_INT,

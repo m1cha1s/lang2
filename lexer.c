@@ -166,6 +166,10 @@ LexerError lexer_lex_src(Lexer *lex)
         default: {
             if (IsAlpha(lex->src.data[lex->head])) {
                 usize start = lex->head;
+                
+                t.line = lex->line;
+                t.col = lex->col;
+                
                 while (1) {
                     lex->head += 1;
                     lex->col += 1;
@@ -181,9 +185,8 @@ LexerError lexer_lex_src(Lexer *lex)
                 }
 
                 t.lit = string_view_from_bytes(&lex->src.data[start], lex->head-start);
-                t.line = lex->line;
-                t.col = lex->col;
-                t.type = TOKEN_IDENT;
+                          
+                t.type = (t.lit.len == 6 && !memcmp(t.lit.data, "return", 6)) ? TOKEN_RETURN : TOKEN_IDENT;
 
                 arrpush(lex->tokens, t);
 
@@ -191,6 +194,10 @@ LexerError lexer_lex_src(Lexer *lex)
             }
             if (IsNum(lex->src.data[lex->head])) {
                 usize start = lex->head;
+                
+                t.line = lex->line;
+                t.col = lex->col;
+                
                 while (1) {
                     lex->head += 1;
                     lex->col += 1;
@@ -206,8 +213,6 @@ LexerError lexer_lex_src(Lexer *lex)
                 }
 
                 t.lit = string_view_from_bytes(&lex->src.data[start], lex->head-start);
-                t.line = lex->line;
-                t.col = lex->col;
                 t.type = TOKEN_NUMBER;
 
                 arrpush(lex->tokens, t);

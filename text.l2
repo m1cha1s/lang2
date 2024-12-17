@@ -1,5 +1,10 @@
 #import "Basic";
 
-main :: (a: i32, b: s32) -> s32, s64 {
+main :: () {
     a := "Hello";
+    print("Hello");
+}
+
+add :: (a: s32, b: s32) -> s32 {
+    return a;
 }
